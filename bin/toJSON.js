@@ -1,10 +1,11 @@
-var fs = require('fs');
-var argv = require('optimist').argv;
+#!/usr/bin/env node
 
-var brd = fs.readFileSync(__dirname + '/../tmp/from-eagle', "utf-8");
-var brdParts = brd.split('\n');
-
-var out = {};
+var
+  fs        = require('fs'),
+  argv      = require('optimist').argv,
+  brd       = fs.readFileSync(__dirname + '/../tmp/from-eagle', "utf-8"),
+  brdParts  = brd.split('\n'),
+  out       = {};
 
 function addValue(path, value) {
   var where = out, last = out,segment;

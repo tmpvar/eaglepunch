@@ -12,7 +12,7 @@ var
 
 hook.on("hook::ready", function() {
 
-  hook.emit('board.data', board, function(err, result) {
+  hook.emit('circuit::board', board, function(err, result) {
     if (err) {
       console.log(err);
     } else {
