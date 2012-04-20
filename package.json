@@ -7,7 +7,9 @@
     "type": "git",
     "url": "https://github.com/tmpvar/eaglepunch.git"
   },
-  "dependencies": {},
+  "dependencies": {
+    "JSONSelect": "~0.4.0"
+  },
   "devDependencies": {},
   "optionalDependencies": {}
 }

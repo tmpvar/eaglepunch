@@ -1,4 +1,5 @@
 from-eagle
 gmon.out
 v8.log
+node_modules
 
