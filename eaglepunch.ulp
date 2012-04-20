@@ -1,6 +1,13 @@
 #usage "exports the current board (everything) to a flat file format"
 
 /*
+  System configuration
+*/
+// Path to the node.js binary
+// on unixy systems we just rely on env.
+string nodePath = "/usr/bin/env node";
+
+/*
   Things to note:
     * dimensional units are ints, the conversion factor is 320000 (i.e. 1680000 / 320000 = 5.25mm)
     * boolean flags have been converted to their appropriate string counterparts 0-false, 1-true
@@ -670,4 +677,20 @@ output(nodeBridgeOut) {
       elementIdx++;
     }
   }
+
+  string eaglepunchPath;
+
+  int i=0;
+  while(path_ulp[i]) {
+    if (strstr(path_ulp[i], "eaglepunch") > -1) {
+      eaglepunchPath = path_ulp[i];
+      break;
+    }
+
+    i++;
+  }
+
+  string handlerPath;
+  sprintf(handlerPath, "%s %s/toJSON.js > %s/from-eagle.json", nodePath, eaglepunchPath, eaglepunchPath);
+  system(handlerPath);
 }
