@@ -30,7 +30,7 @@ now you should have a `from-eagle` file in the `eaglepunch` directory.
 
 it looks something like this:
 
-<img src="http://imgur.com/V8ZdM.png" border="1" />
+<img src="http://imgur.com/oo9O2.png" border="1" />
 
 to turn this into json run `node eaglepunch/toJSON.js`
 
