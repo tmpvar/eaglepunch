@@ -1,6 +1,7 @@
 var fs = require('fs');
+var argv = require('optimist').argv;
 
-var brd = fs.readFileSync(__dirname + '/from-eagle', "utf-8");
+var brd = fs.readFileSync(__dirname + '/../tmp/from-eagle', "utf-8");
 var brdParts = brd.split('\n');
 
 var out = {};
@@ -37,4 +38,10 @@ brdParts.forEach(function(value) {
   addValue(lineParts[0].split('.'), value);
 });
 
-console.log(JSON.stringify(out, null, '  '));
+var json = JSON.stringify(out, null, '  ')
+
+if (argv.out) {
+  fs.writeFileSync(argv.out, json);
+} else {
+  console.log(json);
+}

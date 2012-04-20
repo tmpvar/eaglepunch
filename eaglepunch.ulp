@@ -3,9 +3,21 @@
 /*
   System configuration
 */
+
 // Path to the node.js binary
-// on unixy systems we just rely on env.
-string nodePath = "/usr/bin/env node";
+string nodePath = "/usr/local/bin/node";
+
+// Find the path to this file
+string eaglepunchPath;
+
+int i=0;
+while(path_ulp[i]) {
+  if (strstr(path_ulp[i], "eaglepunch") > -1) {
+    eaglepunchPath = path_ulp[i];
+    break;
+  }
+  i++;
+}
 
 /*
   Things to note:
@@ -14,7 +26,7 @@ string nodePath = "/usr/bin/env node";
 */
 
 string nodeBridgeOut;
-sprintf(nodeBridgeOut, "%s/node/from-eagle", path_ulp[0]);
+sprintf(nodeBridgeOut, "%s/tmp/from-eagle", eaglepunchPath);
 void line(string s) {
   printf("%s\n", s);
 }
@@ -678,19 +690,14 @@ output(nodeBridgeOut) {
     }
   }
 
-  string eaglepunchPath;
 
-  int i=0;
-  while(path_ulp[i]) {
-    if (strstr(path_ulp[i], "eaglepunch") > -1) {
-      eaglepunchPath = path_ulp[i];
-      break;
-    }
-
-    i++;
-  }
 
   string handlerPath;
-  sprintf(handlerPath, "%s %s/toJSON.js > %s/from-eagle.json", nodePath, eaglepunchPath, eaglepunchPath);
+  sprintf(handlerPath, "%s %s/bin/toJSON.js > %s/tmp/from-eagle.json", nodePath, eaglepunchPath, eaglepunchPath);
   system(handlerPath);
+
+  // Now push the json to a hook.io network for processing
+  string emitterPath;
+  sprintf(emitterPath, "%s %s/bin/emitBoardData.js", nodePath, eaglepunchPath);
+  system(emitterPath);
 }
