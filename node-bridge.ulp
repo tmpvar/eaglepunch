@@ -1,0 +1,673 @@
+#usage "exports the current board (everything) to a flat file format"
+
+/*
+  Things to note:
+    * dimensional units are ints, the conversion factor is 320000 (i.e. 1680000 / 320000 = 5.25mm)
+    * boolean flags have been converted to their appropriate string counterparts 0-false, 1-true
+*/
+
+string nodeBridgeOut;
+sprintf(nodeBridgeOut, "%s/node/from-eagle", path_ulp[0]);
+void line(string s) {
+  printf("%s\n", s);
+}
+
+void addString(string path, string value) {
+  string parts[];
+  strsplit(parts, value, '\n');
+  printf("%s:%s\n", path, strjoin(parts, ' '));
+}
+
+
+void addInt(string path, int value) {
+  printf("%s:%d\n", path, value);
+}
+
+void addReal(string path, real value) {
+  printf("%s:%f\n", path, value);
+}
+
+void addCap(string path, int cap) {
+  if (cap == CAP_FLAT) {
+    addString(path, "flat");
+  } else {
+    addString(path, "round");
+  }
+}
+
+void addArc(string path, UL_ARC arc) {
+  addReal(path + "angle.start", arc.angle1);
+  addReal(path + "angle.end", arc.angle2);
+  addCap(path + "cap", arc.cap);
+  addInt(path + "layer", arc.layer);
+  addInt(path + "radius", arc.radius);
+  addInt(path + "width", arc.width);
+  addInt(path + "start.x", arc.x1);
+  addInt(path + "start.y", arc.y1);
+  addInt(path + "end.x", arc.x2);
+  addInt(path + "end.y", arc.y2);
+  addInt(path + "center.x", arc.xc);
+  addInt(path + "center.y", arc.yc);
+}
+
+
+void addWire(string path, UL_WIRE wire) {
+  if (wire.arc) {
+    addArc(path + ".arc.", wire.arc);
+  }
+
+  addCap(path + "cap", wire.cap);
+  addReal(path + "curve", wire.curve);
+  addInt(path + "layer", wire.layer);
+  addInt(path + "width", wire.width);
+  addInt(path + "start.x", wire.x1);
+  addInt(path + "start.y", wire.y1);
+  addInt(path + "end.x", wire.x2);
+  addInt(path + "end.y", wire.y2);
+
+  string wireStyle;
+  switch (wire.style) {
+    case WIRE_STYLE_CONTINUOUS:
+      wireStyle = "continuous";
+    break;
+
+    case WIRE_STYLE_LONGDASH:
+      wireStyle = "longdash";
+    break;
+
+    case WIRE_STYLE_SHORTDASH:
+      wireStyle = "shortdash";
+    break;
+
+    case WIRE_STYLE_DASHDOT:
+      wireStyle = "dashdot";
+    break;
+  }
+  addString(path + "style", wireStyle);
+
+  // So apparently this language doesn't support recursion.
+  int pieceIdx = 0;
+  string piecePrefix;
+  wire.pieces(piece) {
+    sprintf(piecePrefix, "%spiece.%d.", path, pieceIdx);
+
+    if (wire.arc) {
+      addArc(piecePrefix + ".arc.", piece.arc);
+    }
+
+    addCap(piecePrefix + "cap", piece.cap);
+    addReal(piecePrefix + "curve", piece.curve);
+    addInt(piecePrefix + "layer", piece.layer);
+    addInt(piecePrefix + "width", piece.width);
+    addInt(piecePrefix + "start.x", piece.x1);
+    addInt(piecePrefix + "start.y", piece.y1);
+    addInt(piecePrefix + "end.x", piece.x2);
+    addInt(piecePrefix + "end.y", piece.y2);
+
+    string wireStyle;
+    switch (piece.style) {
+      case WIRE_STYLE_CONTINUOUS:
+        wireStyle = "continuous";
+      break;
+
+      case WIRE_STYLE_LONGDASH:
+        wireStyle = "longdash";
+      break;
+
+      case WIRE_STYLE_SHORTDASH:
+        wireStyle = "shortdash";
+      break;
+
+      case WIRE_STYLE_DASHDOT:
+        wireStyle = "dashdot";
+      break;
+    }
+
+    addString(piecePrefix + "style", wireStyle);
+
+    pieceIdx++;
+  }
+}
+
+string unitToString(int unit) {
+  if (unit == GRID_UNIT_MIC) {
+    return "microns";
+  } else if (unit == GRID_UNIT_MM) {
+    return "mm";
+  } else if (unit == GRID_UNIT_MIL) {
+    return "mil";
+  } else if (unit == GRID_UNIT_INCH) {
+    return "in";
+  }
+}
+
+
+
+string toBoolString(int flag) {
+  if (flag) {
+    return "true";
+  } else {
+    return "false";
+  }
+}
+
+void addText(string path, UL_TEXT text) {
+  string textAlign;
+
+  // The constants below have been commented out as they exist in the docs
+  // but throw errors when attempting to access.
+  // Naively treating them like an enum.
+  switch (text.align) {
+    case 0: //ALIGN_BOTTOM_LEFT:
+      textAlign = "bottom-left";
+    break;
+
+    case 1: //ALIGN_BOTTOM_CENTER:
+      textAlign = "bottom-center";
+    break;
+
+    case 2: //ALIGN_BOTTOM_RIGHT:
+      textAlign = "bottom-right";
+    break;
+
+    case 3: //ALIGN_CENTER_LEFT:
+      textAlign = "center-left";
+    break;
+
+    case 4: //ALIGN_CENTER:
+      textAlign = "center";
+    break;
+
+    case 5: //ALIGN_CENTER_RIGHT:
+      textAlign = "center-right";
+    break;
+
+    case 6: //ALIGN_TOP_LEFT:
+      textAlign = "top-left";
+    break;
+
+    case 7: //ALIGN_TOP_CENTER:
+      textAlign = "top-center";
+    break;
+
+    case 8: //ALIGN_TOP_RIGHT:
+      textAlign = "top-right";
+    break;
+  }
+
+  addString(path + "align", textAlign);
+  addReal(path + "angle", text.angle);
+
+  string dimensionFont;
+  switch (text.font) {
+    case FONT_VECTOR:
+      dimensionFont = "vector";
+    break;
+    case FONT_PROPORTIONAL:
+      dimensionFont = "proportional";
+    break;
+    case FONT_FIXED:
+      dimensionFont = "fixed";
+    break;
+  }
+
+  addString(path + "font", dimensionFont);
+  addString(path + "value", text.value);
+  addInt(path + "layer", text.layer);
+  addString(path + "mirror", toBoolString(text.mirror));
+  addInt(path + "ratio", text.ratio);
+  addInt(path + "size", text.size);
+  addInt(path + "spin", text.spin);
+  addInt(path + "origin.x", text.x);
+  addInt(path + "origin.y", text.y);
+
+  int textWiresIdx = 0;
+  string textWiresPrefix;
+  text.wires(wire) {
+    sprintf(textWiresPrefix, "%swires.%d.", path, textWiresIdx);
+    addWire(textWiresPrefix, wire);
+    textWiresIdx++;
+  }
+}
+
+
+void addAttribute(string path, UL_ATTRIBUTE attribute) {
+  addString(path + "constant", toBoolString(attribute.constant));
+  addString(path + "defaultValue", attribute.defaultvalue);
+  addString(path + "display.off", toBoolString(attribute.display & ATTRIBUTE_DISPLAY_FLAG_OFF));
+  addString(path + "display.value", toBoolString(attribute.display & ATTRIBUTE_DISPLAY_FLAG_VALUE));
+  addString(path + "display.name", toBoolString(attribute.display & ATTRIBUTE_DISPLAY_FLAG_NAME));
+  addString(path + "name", attribute.name);
+  addText(path + "text", attribute.text);
+  addString(path + "value", attribute.value);
+}
+
+
+int isValidLayer(UL_LAYER layer) {
+  if (layer.used) {
+    switch(layer.number) {
+      // These layers will throw errors if you attempt to access pad.diameter[layer.number]
+      case 20:
+      case 21:
+      case 23:
+      case 25:
+      case 27:
+      case 31:
+      case 35:
+      case 39:
+      case 44:
+      case 51:
+      break;
+
+      default:
+       return 1;
+      break;
+    }
+  }
+  return 0;
+}
+
+output(nodeBridgeOut) {
+  board(b) {
+    addString("board.name", b.name);
+    addString("board.headline", b.headline);
+    addString("board.description", b.description);
+
+    addInt("board.area.x1", b.area.x1);
+    addInt("board.area.x2", b.area.x2);
+    addInt("board.area.y1", b.area.y1);
+    addInt("board.area.y2", b.area.y2);
+
+    addReal("board.grid.distance",  b.grid.distance);
+    addString("board.grid.dots",       toBoolString(b.grid.dots));
+    addInt("board.grid.multiple",   b.grid.multiple);
+    addString("board.grid.on",         toBoolString(b.grid.on));
+    addString("board.grid.unit",       unitToString(b.grid.unit));
+    addString("board.grid.unitdist",   unitToString(b.grid.unitdist));
+
+    // Circles
+    int circleIdx = 0;
+    string circlePrefix;
+
+    b.circles(circle) {
+      sprintf(circlePrefix, "board.circles.%d.", circleIdx);
+      addInt(circlePrefix + "layer", circle.layer);
+      addInt(circlePrefix + "radius", circle.radius);
+      addInt(circlePrefix + "width", circle.width);
+      addInt(circlePrefix + "center.x", circle.x);
+      addInt(circlePrefix + "center.y", circle.y);
+      circleIdx++;
+    }
+
+    // Dimensions
+    int dimensionIdx = 0;
+    string dimensionPrefix;
+
+    b.dimensions(dimension) {
+      sprintf(dimensionPrefix, "board.dimension.%d.", dimensionIdx);
+
+      string dimensionType;
+      switch (dimension.dtype) {
+        case DIMENSION_PARALLEL:
+          dimensionType = "parallel";
+        break;
+        case DIMENSION_HORIZONTAL:
+          dimensionType = "horizontal";
+        break;
+        case DIMENSION_VERTICAL:
+          dimensionType = "vertical";
+        break;
+        case DIMENSION_RADIUS:
+          dimensionType = "radius";
+        break;
+        case DIMENSION_DIAMETER:
+          dimensionType = "diameter";
+        break;
+        case DIMENSION_ANGLE:
+          dimensionType = "angle";
+        break;
+        case DIMENSION_LEADER:
+          dimensionType = "leader";
+        break;
+      }
+      addString(dimensionPrefix + "type", dimensionType);
+
+      addInt(dimensionPrefix + "layer", dimension.layer);
+      addInt(dimensionPrefix + "x1", dimension.x1);
+      addInt(dimensionPrefix + "y1", dimension.y1);
+      addInt(dimensionPrefix + "x2", dimension.x2);
+      addInt(dimensionPrefix + "y2", dimension.y2);
+      addInt(dimensionPrefix + "x3", dimension.x3);
+      addInt(dimensionPrefix + "y3", dimension.y3);
+
+      // Dimension texts
+      int dimensionTextIdx = 0;
+      string dimensionTextPrefix;
+
+      dimension.texts(text) {
+        sprintf(dimensionTextPrefix, "%stext.%d.", dimensionPrefix, dimensionTextIdx);
+        addText(dimensionTextPrefix, text);
+        dimensionTextIdx++;
+      }
+
+      // Dimension wires
+      int dimensionWireIdx = 0;
+      string dimensionWirePrefix;
+      dimension.wires(wire) {
+        sprintf(dimensionWirePrefix, "board.dimension.wire.%d.", dimensionWireIdx);
+        addWire(dimensionWirePrefix, wire);
+        dimensionWireIdx++;
+      }
+
+      dimensionWireIdx++;
+    }
+
+    // Board frames
+    int frameIdx = 0;
+    string framePrefix;
+    b.frames(frame) {
+      sprintf(framePrefix, "board.frame.%d.", frameIdx);
+      addInt(framePrefix + "columns", frame.columns);
+      addInt(framePrefix + "rows", frame.rows);
+
+      addString(framePrefix + "border.bottom", toBoolString(frame.border & FRAME_BORDER_BOTTOM));
+      addString(framePrefix + "border.right", toBoolString(frame.border & FRAME_BORDER_RIGHT));
+      addString(framePrefix + "border.top", toBoolString(frame.border & FRAME_BORDER_TOP));
+      addString(framePrefix + "border.left", toBoolString(frame.border & FRAME_BORDER_LEFT));
+
+      addInt(framePrefix + "layer", frame.layer);
+      addInt(framePrefix + "x1", frame.x1);
+      addInt(framePrefix + "y1", frame.y1);
+      addInt(framePrefix + "x2", frame.x2);
+      addInt(framePrefix + "y2", frame.y2);
+
+      // frame texts
+      int frameTextsIdx = 0;
+      string frameTextsPrefix;
+      frame.texts(text) {
+        sprintf(frameTextsPrefix, "%stexts.%d.", framePrefix, frameTextsIdx);
+        addText(frameTextsPrefix, text);
+        frameTextsIdx++;
+      }
+
+      // frame wires
+      int frameWiresIdx = 0;
+      string frameWiresPrefix;
+      frame.wires(wire) {
+        sprintf(frameWiresPrefix, "%swires.%d.", framePrefix, frameWiresIdx);
+        addWire(frameWiresPrefix, wire);
+        frameWiresIdx++;
+      }
+
+      frameIdx++;
+    }
+
+    // Board holes
+    int holeIdx = 0;
+    string holePrefix;
+    b.holes(hole) {
+      sprintf(holePrefix, "board.holes.%d.", holeIdx);
+
+      b.layers(layer) {
+        if (isValidLayer(layer)) {
+          addInt(holePrefix + "diameter." + layer.name, hole.diameter[layer.number]);
+        }
+      }
+
+      addInt(holePrefix + "drill", hole.drill);
+      addInt(holePrefix + "drillsymbol", hole.drillsymbol);
+      addInt(holePrefix + "x", hole.x);
+      addInt(holePrefix + "y", hole.y);
+
+    }
+
+    // Board layers
+    int boardLayerIdx = 0;
+    string boardLayerPrefix;
+    b.layers(layer) {
+      sprintf(boardLayerPrefix, "board.layer.%d", boardLayerIdx);
+
+      addInt(boardLayerPrefix + "color", layer.color);
+      addInt(boardLayerPrefix + "fill", layer.fill);
+      addString(boardLayerPrefix + "name", layer.name);
+      addInt(boardLayerPrefix + "number", layer.number);
+      addString(boardLayerPrefix + "used", toBoolString(layer.used));
+      addString(boardLayerPrefix + "visible", toBoolString(layer.visible));
+
+      boardLayerIdx++;
+    }
+
+
+    // Board polygons
+    int polygonIdx = 0;
+    string polygonPrefix;
+    b.polygons(polygon) {
+      sprintf(polygonPrefix, "board.polygons.%d.", polygonIdx);
+
+      addString(polygonPrefix + "isolate", toBoolString(polygon.isolate));
+      addInt(polygonPrefix + "layer", polygon.layer);
+      addInt(polygonPrefix + "rank", polygon.rank);
+      addInt(polygonPrefix + "width", polygon.width);
+      addString(polygonPrefix + "orphans", toBoolString(polygon.orphans));
+      string polygonPour;
+      switch (polygon.pour) {
+        case POLYGON_POUR_SOLID:
+          polygonPour = "solid";
+        break;
+
+        case POLYGON_POUR_HATCH:
+          polygonPour = "hatch";
+        break;
+
+        case POLYGON_POUR_CUTOUT:
+          polygonPour = "cutout";
+        break;
+
+      }
+      addString(polygonPrefix + "pour", polygonPour);
+      addString(polygonPrefix + "thermals", toBoolString(polygon.thermals));
+
+      // Polygon contours
+      int polygonContoursIdx = 0;
+      string polygonContoursPrefix;
+      polygon.contours(contour) {
+        sprintf(polygonContoursPrefix, "%scontours.%d.", polygonPrefix, polygonContoursIdx);
+        addWire(polygonContoursPrefix, contour);
+        polygonContoursIdx++;
+      }
+
+      // Polygon fillings
+      int polygonFillingsIdx = 0;
+      string polygonFillingsPrefix;
+      polygon.fillings(filling) {
+        sprintf(polygonFillingsPrefix, "%sfillings.%d.", polygonPrefix, polygonFillingsIdx);
+        addWire(polygonFillingsPrefix, filling);
+        polygonFillingsIdx++;
+      }
+
+      // Polygon wires
+      int polygonWiresIdx = 0;
+      string polygonWiresPrefix;
+      polygon.wires(wire) {
+        sprintf(polygonWiresPrefix, "%swires.%d.", polygonPrefix, polygonWiresIdx);
+        addWire(polygonWiresPrefix, wire);
+        polygonWiresIdx++;
+      }
+
+
+      polygonIdx++;
+    }
+
+    // Board rectangles
+    int rectangleIdx = 0;
+    string rectanglePrefix;
+    b.rectangles(rectangle) {
+      sprintf(rectanglePrefix, "board.rectangles.%d.", rectangleIdx);
+
+      addReal(rectanglePrefix + "angle", rectangle.angle);
+      addInt(rectanglePrefix + "layer", rectangle.layer);
+      addInt(rectanglePrefix + "x1", rectangle.x1);
+      addInt(rectanglePrefix + "y1", rectangle.y1);
+      addInt(rectanglePrefix + "x2", rectangle.x2);
+      addInt(rectanglePrefix + "y2", rectangle.y2);
+
+      rectangleIdx++;
+    }
+
+    // Board "Texts"
+    int boardTextIdx = 0;
+    string boardTextPrefix;
+    b.texts(text) {
+      sprintf(boardTextPrefix, "board.texts.%d.", boardTextIdx);
+      addText(boardTextPrefix, text);
+      boardTextIdx++;
+    }
+
+    // Board Wires
+    int boardWireIdx = 0;
+    string boardWirePrefix;
+    b.wires(wire) {
+      sprintf(boardWirePrefix, "board.wires.%d.", boardWireIdx);
+      addWire(boardWirePrefix, wire);
+      boardWireIdx++;
+    }
+
+    // Elements
+    int elementIdx = 0;
+    string elementPrefix;
+
+    b.elements(el) {
+      sprintf(elementPrefix, "board.elements.%d.", elementIdx);
+
+      // Element attributes
+      int elementAttributeIdx = 0;
+      string elementAttributePrefix;
+      el.attributes(attribute) {
+        sprintf(elementAttributePrefix, "%sattributes.%d.", elementPrefix, elementAttributeIdx);
+        addAttribute(elementAttributePrefix, attribute);
+        elementAttributeIdx++;
+      }
+
+      // Element "texts"
+      int elementTextIdx = 0;
+      string elementTextPrefix;
+      el.texts(text) {
+        sprintf(elementTextPrefix, "%stexts.%d.", elementPrefix, elementTextIdx);
+        addText(elementTextPrefix, text);
+        elementTextIdx++;
+      }
+
+
+      // TODO: variants
+
+      addReal(elementPrefix   + "angle",    el.angle);
+      addString(elementPrefix + "column",   el.column);
+      addString(elementPrefix + "row",      el.row);
+      addString(elementPrefix + "locked",   toBoolString(el.locked));
+      addString(elementPrefix + "mirror",   toBoolString(el.mirror));
+      addString(elementPrefix + "populate", toBoolString(el.populate));
+      addString(elementPrefix + "smashed",  toBoolString(el.smashed));
+      addString(elementPrefix + "name",     el.name);
+      addString(elementPrefix + "value",    el.value);
+      addInt(elementPrefix    + "spin",     el.spin);
+      addInt(elementPrefix    + "x",        el.x);
+      addInt(elementPrefix    + "y",        el.y);
+
+      // Element's package
+      addInt(elementPrefix + "package.area.x1", el.package.area.x1);
+      addInt(elementPrefix + "package.area.x2", el.package.area.x2);
+      addInt(elementPrefix + "package.area.y1", el.package.area.y1);
+      addInt(elementPrefix + "package.area.y2", el.package.area.y2);
+
+      addString(elementPrefix + "package.description",  el.package.description);
+      addString(elementPrefix + "package.headline",     el.package.headline);
+      addString(elementPrefix + "package.library",      el.package.library);
+      addString(elementPrefix + "package.name",         el.package.name);
+
+      // Element's contacts
+      int contactIdx = 0;
+      string contactPrefix;
+      el.package.contacts(contact) {
+        sprintf(contactPrefix, "%spackage.contacts.%d.", elementPrefix, contactIdx);
+
+        addString(contactPrefix + "name", contact.name);
+        addString(contactPrefix + "signal", contact.signal);
+        addInt(contactPrefix + "x", contact.x);
+        addInt(contactPrefix + "y", contact.y);
+
+        // Handle SMDs
+        if (contact.smd) {
+          UL_SMD smd = contact.smd;
+          string smdPrefix = contactPrefix + "smd." + smd.name + ".";
+          addReal(smdPrefix + "angle",    smd.angle);
+          addInt(smdPrefix + "dx",        smd.dx);
+          addInt(smdPrefix + "dy",        smd.dy);
+          addInt(smdPrefix + "layer",     smd.layer);
+          addInt(smdPrefix + "roundness", smd.roundness);
+          addInt(smdPrefix + "x",         smd.x);
+          addInt(smdPrefix + "y",         smd.y);
+          addString(smdPrefix + "signal", smd.signal);
+          addString(smdPrefix + "flags.stop", toBoolString(smd.flags & SMD_FLAG_STOP));
+          addString(smdPrefix + "flags.thermals", toBoolString(smd.flags & SMD_FLAG_STOP));
+          addString(smdPrefix + "flags.cream", toBoolString(smd.flags & SMD_FLAG_STOP));
+        }
+
+        // Handle pads
+        if (contact.pad) {
+          UL_PAD pad = contact.pad;
+          string padPrefix = contactPrefix + "pad." + pad.name + ".";
+          addReal(padPrefix + "angle",      pad.angle);
+
+          addInt(padPrefix + "drill",       pad.drill);
+          addInt(padPrefix + "drillsymbol", pad.drillsymbol);
+          addInt(padPrefix + "elongation",  pad.elongation);
+          addInt(padPrefix + "center.x",    pad.x);
+          addInt(padPrefix + "center.y",    pad.y);
+          addString(padPrefix + "signal",   pad.signal);
+
+          // diameter per layer
+          b.layers(layer) {
+            if (isValidLayer(layer)) {
+              addInt(padPrefix + "diameter." + layer.name, pad.diameter[layer.number]);
+
+              string layerShape;
+              switch (pad.shape[layer.number]) {
+                case PAD_SHAPE_SQUARE:
+                  layerShape = "square";
+                break;
+
+                case PAD_SHAPE_ROUND:
+                  layerShape = "round";
+                break;
+
+                case PAD_SHAPE_OCTAGON:
+                  layerShape = "octagon";
+                break;
+
+                case PAD_SHAPE_LONG:
+                  layerShape = "long";
+                break;
+
+                case PAD_SHAPE_OFFSET:
+                  layerShape = "offset";
+                break;
+              }
+
+              // shape per layer
+              addString(padPrefix + "shape." + layer.name, layerShape);
+            }
+          }
+
+          // flags
+          addString(padPrefix + "flags.stop", toBoolString(pad.flags & PAD_FLAG_STOP));
+          addString(padPrefix + "flags.thermals", toBoolString(pad.flags & PAD_FLAG_THERMALS));
+          addString(padPrefix + "flags.first", toBoolString(pad.flags & PAD_FLAG_FIRST));
+
+        }
+        contactIdx++;
+      }
+
+      elementIdx++;
+    }
+  }
+}
