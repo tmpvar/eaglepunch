@@ -1,0 +1,13 @@
+{
+  "author": "Elijah Insua <tmpvar@gmail.com> (http://tmpvar.com)",
+  "name": "eaglepunch",
+  "description": "punch cadsoft's eagle into submission by turning a .brd file into a json document.",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tmpvar/eaglepunch.git"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "optionalDependencies": {}
+}
