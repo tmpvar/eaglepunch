@@ -14,5 +14,6 @@ try {
 
     fn(board, argv);
 } catch (e) {
+  console.log(e);
   process.exit(1);
 }

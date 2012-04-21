@@ -444,7 +444,7 @@ output(nodeBridgeOut) {
     int boardLayerIdx = 0;
     string boardLayerPrefix;
     b.layers(layer) {
-      sprintf(boardLayerPrefix, "board.layer.%d", boardLayerIdx);
+      sprintf(boardLayerPrefix, "board.layer.%d.", boardLayerIdx);
 
       addInt(boardLayerPrefix + "color", layer.color);
       addInt(boardLayerPrefix + "fill", layer.fill);
@@ -696,8 +696,15 @@ output(nodeBridgeOut) {
   sprintf(handlerPath, "%s %s/bin/toJSON.js > %s/tmp/from-eagle.json", nodePath, eaglepunchPath, eaglepunchPath);
   system(handlerPath);
 
-  // Now push the json to a hook.io network for processing
-  string emitterPath;
-  sprintf(emitterPath, "%s %s/bin/emitBoardData.js", nodePath, eaglepunchPath);
-  system(emitterPath);
+  // process data using a script
+  string runPath;
+  string args;
+  int a;
+  for (a=0; a<argc; a++) {
+    sprintf(args, "%s %s", args, argv[a]);
+  }
+
+  // run this in the background as to not block
+  sprintf(runPath, "%s %s/bin/run.js %s", nodePath, eaglepunchPath, args);
+  system(runPath);
 }
