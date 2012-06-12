@@ -26,7 +26,12 @@ while(path_ulp[i]) {
 */
 
 string nodeBridgeOut;
-sprintf(nodeBridgeOut, "%s/tmp/from-eagle", eaglepunchPath);
+string boardFilename;
+board(b) {
+  sprintf(boardFilename, "%s", filesetext(filename(b.name), ".txt"));
+}
+
+sprintf(nodeBridgeOut, "%s/tmp/%s", eaglepunchPath, boardFilename);
 void line(string s) {
   printf("%s\n", s);
 }
@@ -266,6 +271,8 @@ int isValidLayer(UL_LAYER layer) {
   if (layer.used) {
     switch(layer.number) {
       // These layers will throw errors if you attempt to access pad.diameter[layer.number]
+      case 18:
+      case 19:
       case 20:
       case 21:
       case 23:
@@ -274,6 +281,9 @@ int isValidLayer(UL_LAYER layer) {
       case 31:
       case 35:
       case 39:
+      case 41:
+      case 42:
+      case 43:
       case 44:
       case 51:
       break;
@@ -689,22 +699,25 @@ output(nodeBridgeOut) {
       elementIdx++;
     }
   }
-
-
-
-  string handlerPath;
-  sprintf(handlerPath, "%s %s/bin/toJSON.js > %s/tmp/from-eagle.json", nodePath, eaglepunchPath, eaglepunchPath);
-  system(handlerPath);
-
-  // process data using a script
-  string runPath;
-  string args;
-  int a;
-  for (a=0; a<argc; a++) {
-    sprintf(args, "%s %s", args, argv[a]);
-  }
-
-  // run this in the background as to not block
-  sprintf(runPath, "%s %s/bin/run.js %s", nodePath, eaglepunchPath, args);
-  system(runPath);
 }
+
+string handlerPath;
+sprintf(
+  handlerPath,
+  "%s %s/bin/toJSON.js --filename='%s'",
+  nodePath,
+  eaglepunchPath,
+  nodeBridgeOut
+);
+
+// process data using a script
+string runPath;
+string args;
+int a;
+for (a=0; a<argc; a++) {
+  sprintf(args, "%s %s", args, argv[a]);
+}
+
+// run this in the background as to not block
+sprintf(runPath, "%s %s/bin/run.js %s", nodePath, eaglepunchPath, args);
+system(runPath);

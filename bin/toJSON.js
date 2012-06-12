@@ -3,9 +3,14 @@
 var
   fs        = require('fs'),
   argv      = require('optimist').argv,
-  brd       = fs.readFileSync(__dirname + '/../tmp/from-eagle', "utf-8"),
+  brd       = fs.readFileSync(argv.filename, "utf-8"),
   brdParts  = brd.split('\n'),
-  out       = {};
+  out       = {},
+  path      = require('path');
+
+process.on('uncaughtException', function (err) {
+  fs.writeFileSync(__dirname + '/../tmp/error.log');
+});
 
 function addValue(path, value) {
   var where = out, last = out,segment;
@@ -39,10 +44,14 @@ brdParts.forEach(function(value) {
   addValue(lineParts[0].split('.'), value);
 });
 
+fs.writeFileSync(__dirname + '/../tmp/debug.txt', __dirname + '/../tmp/' + path.basename(argv.filename, '.txt') + '.json');
+
 var json = JSON.stringify(out, null, '  ')
 
-if (argv.out) {
-  fs.writeFileSync(argv.out, json);
-} else {
-  console.log(json);
-}
+
+fs.writeFileSync(
+  __dirname + '/../tmp/' + path.basename(argv.filename, '.txt') + '.json',
+  json
+);
+
+//console.log(json);
