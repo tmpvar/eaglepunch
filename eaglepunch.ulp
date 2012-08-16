@@ -285,6 +285,7 @@ int isValidLayer(UL_LAYER layer) {
       case 42:
       case 43:
       case 44:
+      case 45:
       case 51:
       break;
 
@@ -704,20 +705,30 @@ output(nodeBridgeOut) {
 string handlerPath;
 sprintf(
   handlerPath,
-  "%s %s/bin/toJSON.js --filename='%s'",
+  "%s %s/bin/toJSON.js --filename=\"%s\"",
   nodePath,
   eaglepunchPath,
   nodeBridgeOut
 );
 
-// process data using a script
-string runPath;
-string args;
-int a;
-for (a=0; a<argc; a++) {
-  sprintf(args, "%s %s", args, argv[a]);
-}
+system(handlerPath);
 
-// run this in the background as to not block
-sprintf(runPath, "%s %s/bin/run.js %s", nodePath, eaglepunchPath, args);
-system(runPath);
+string jsonFile = filesetext(nodeBridgeOut, ".json");
+
+string debugFile;
+sprintf(debugFile, "%s/tmp/%s.debug", eaglepunchPath, boardFilename);
+output(debugFile) {
+  printf("%s\n", handlerPath);
+
+  // process data using a script
+  string runPath;
+  string args;
+  int a;
+  for (a=0; a<argc; a++) {
+    sprintf(args, "%s %s", args, argv[a]);
+  }
+
+  // run this in the background as to not block
+  sprintf(runPath, "%s %s/bin/run.js %s --filename=\"%s\"", nodePath, eaglepunchPath, args, jsonFile);
+  system(runPath);
+}

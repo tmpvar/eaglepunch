@@ -8,8 +8,9 @@ var
   out       = {},
   path      = require('path');
 
+
 process.on('uncaughtException', function (err) {
-  fs.writeFileSync(__dirname + '/../tmp/error.log');
+  fs.writeFileSync(__dirname + '/../tmp/error.log', err);
 });
 
 function addValue(path, value) {
@@ -44,8 +45,6 @@ brdParts.forEach(function(value) {
   addValue(lineParts[0].split('.'), value);
 });
 
-fs.writeFileSync(__dirname + '/../tmp/debug.txt', __dirname + '/../tmp/' + path.basename(argv.filename, '.txt') + '.json');
-
 var json = JSON.stringify(out, null, '  ')
 
 
@@ -54,4 +53,4 @@ fs.writeFileSync(
   json
 );
 
-//console.log(json);
+console.log(json);

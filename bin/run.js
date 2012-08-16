@@ -9,11 +9,12 @@ if (!argv.run) {
 try {
   var
     fn    = require(__dirname + '/../script/' + argv.run),
-    json  = fs.readFileSync(__dirname + '/../tmp/from-eagle.json', 'ascii'),
+    json  = fs.readFileSync(argv.filename, 'ascii'),
     board = JSON.parse(json);
 
     fn(board, argv);
 } catch (e) {
-  console.log(e);
+  fs.writeFileSync(__dirname + '/../tmp/run.error.txt', e);
+  throw e;
   process.exit(1);
 }
