@@ -1,3 +1,4 @@
+[![build status](https://secure.travis-ci.org/tmpvar/eaglepunch.png)](http://travis-ci.org/tmpvar/eaglepunch)
 # install
 
     git clone https://github.com/tmpvar/eaglepunch.git
